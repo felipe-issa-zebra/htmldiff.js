@@ -60,6 +60,7 @@
     },
     "scripts": {
         "test": "mocha -R min",
+        "test-print": "mocha",
         "testsample": "node htmldiff-cli.js sample/before.html sample/after.html - -c myDiffClass -p myPrefix",
         "lint": "eslint -c eslintrc.json --parser-options=project:./tsconfig.json --ext .ts ./",
         "premake": "npm run lint",

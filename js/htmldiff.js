@@ -88,6 +88,22 @@
     }
 
     /**
+     * Sets the atomic tag regular expression, if not already set.
+     * This was moved to a method so it can be called on test phase. 
+     * Also checks if not already defined for the same reason.
+     *
+     * @param {*} atomicTags 
+     * @returns 
+     */
+    function setAtomicTagsRegExp(atomicTags) {
+        // if already set no need to set again, unless provided
+        if(!atomicTags && atomicTagsRegExp) return;
+        atomicTags ? 
+            (atomicTagsRegExp = new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')'))
+            : (atomicTagsRegExp = defaultAtomicTagsRegExp);
+    }
+
+    /**
      * Checks if the current word is the end of an atomic tag (i.e. it has all the characters,
      * except for the end bracket of the closing tag, such as '<iframe></iframe').
      *
@@ -584,6 +600,17 @@
             }
         }
 
+        // case its a single value, we must check if its the same text.
+        // this is used case a tag is grouped, so we can validate if the value is the same
+        // this also checks if the attributes of a atomic tag are the same.
+        if(beforeStart === afterStart && currentLength === 1) {
+            let beforeText = beforeTokens[beforeStart];
+            let afterText = afterTokens[afterStart];
+            if(beforeText.string !== afterText.string) {
+                return;
+            }
+        }
+
         return new Match(beforeStart, afterStart, currentLength, segment);
     }
 
@@ -751,55 +778,8 @@
                 lastOp = op;
             }
         }
+
         return postProcessed;
-    }
-
-    function checkForRemovedTags(beforeTokens, afterTokens) {
-        let beforeMap = createMap(beforeTokens);
-        let afterMap = createMap(afterTokens);
-
-        for(let i = 0; i < beforeTokens.length; i++ ) {
-            const token = beforeTokens[i];
-            if(isntTag(token.string) || token.string.substring(0, 2) === '</' || isVoidTag(token.string)) {
-                continue;
-            } 
-
-            const closingTag = "</" + token.string.substring(1);
-            const closeIndex = beforeMap[closingTag].find(value => value > i);
-            const afterStartIndexes = afterMap[token.string];
-            const afterCloseIndexes = afterMap[closingTag];
-
-            const text = beforeTokens.slice(i, closeIndex +1)
-                .map(token => token.string)
-                .join('');
-
-            let found = false;
-            // check if there is start and after on closing indexes
-            if(afterStartIndexes && afterStartIndexes.length > 0 && afterCloseIndexes && afterCloseIndexes.length > 0) {
-                for(let k = 0; k < afterStartIndexes.length && !found; k++) {
-                    // check if there is a starting and closing tag with this index
-                    if(!!afterStartIndexes[k] && afterCloseIndexes[k] ) {
-                        const afterStartIndex = afterStartIndexes[k];
-                        const afterEndIndex = afterCloseIndexes[k];
-
-                        const afterText = afterTokens.slice(afterStartIndex, afterEndIndex +1)
-                            .map(token => token.string)
-                            .join('');
-
-                        found = afterText === text;
-                    }
-                }
-            }
-            
-            if(found) {
-                continue;
-            }
-            
-            token.string = text;
-            beforeTokens.splice(i+1,  closeIndex-i);
-            // recalculate map
-            beforeMap = createMap(beforeTokens);
-        }
     }
 
     /**
@@ -1007,9 +987,7 @@
         if (before === after) return before;
 
         // Enable user provided atomic tag list.
-        atomicTags ? 
-            (atomicTagsRegExp = new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')\b'))
-            : (atomicTagsRegExp = defaultAtomicTagsRegExp);
+        setAtomicTagsRegExp(atomicTags); 
 
         before = htmlToTokens(before);
         after = htmlToTokens(after);
@@ -1019,6 +997,7 @@
 
     diff.htmlToTokens = htmlToTokens;
     diff.findMatchingBlocks = findMatchingBlocks;
+    diff.setAtomicTagsRegExp = setAtomicTagsRegExp;
     findMatchingBlocks.findBestMatch = findBestMatch;
     findMatchingBlocks.createMap = createMap;
     findMatchingBlocks.createToken = createToken;

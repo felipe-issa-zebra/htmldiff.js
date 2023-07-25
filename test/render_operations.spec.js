@@ -146,9 +146,7 @@ describe('renderOperations', function(){
 
             res = cut(before, after);
 
-            expect(res).to.equal('<p style="margin: 2px;" class="after">' +
-                    '<del data-operation-index="1">this</del><ins data-operation-index="1">' +
-                    'that</ins> is awesome</p>');
+            expect(res).to.equal('<p><del data-operation-index="0">this</del><p style="margin: 2px;" class="after"><ins data-operation-index="0">that</ins> is awesome</p>');
         });
     });
 

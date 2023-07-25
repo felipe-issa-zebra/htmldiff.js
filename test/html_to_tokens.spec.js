@@ -1,9 +1,10 @@
 describe('htmlToTokens', function(){
-    var cut, res, diff, createToken, tokenize;
+    var cut, res, diff, createToken, tokenize, setAtomicTagsRegExp;
 
     beforeEach(function(){
         diff = require('../js/htmldiff')
         cut = diff.htmlToTokens;
+        setAtomicTagsRegExp = diff.setAtomicTagsRegExp;
 
         createToken = diff.findMatchingBlocks.createToken;
         tokenize = function(tokens){
@@ -11,6 +12,7 @@ describe('htmlToTokens', function(){
                 return createToken(token);
             });
         };
+        setAtomicTagsRegExp('iframe,object,math,svg,script,video,head,style,a');
     });
 
     it('should be a function', function(){
