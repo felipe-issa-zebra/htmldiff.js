@@ -70,7 +70,7 @@
      */
     var atomicTagsRegExp;
     // Added head and style (for style tags inside the body)
-    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)\b');
+    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)');
     
     /**
      * Checks if the current word is the beginning of an atomic tag. An atomic tag is one whose
@@ -752,6 +752,54 @@
             }
         }
         return postProcessed;
+    }
+
+    function checkForRemovedTags(beforeTokens, afterTokens) {
+        let beforeMap = createMap(beforeTokens);
+        let afterMap = createMap(afterTokens);
+
+        for(let i = 0; i < beforeTokens.length; i++ ) {
+            const token = beforeTokens[i];
+            if(isntTag(token.string) || token.string.substring(0, 2) === '</' || isVoidTag(token.string)) {
+                continue;
+            } 
+
+            const closingTag = "</" + token.string.substring(1);
+            const closeIndex = beforeMap[closingTag].find(value => value > i);
+            const afterStartIndexes = afterMap[token.string];
+            const afterCloseIndexes = afterMap[closingTag];
+
+            const text = beforeTokens.slice(i, closeIndex +1)
+                .map(token => token.string)
+                .join('');
+
+            let found = false;
+            // check if there is start and after on closing indexes
+            if(afterStartIndexes && afterStartIndexes.length > 0 && afterCloseIndexes && afterCloseIndexes.length > 0) {
+                for(let k = 0; k < afterStartIndexes.length && !found; k++) {
+                    // check if there is a starting and closing tag with this index
+                    if(!!afterStartIndexes[k] && afterCloseIndexes[k] ) {
+                        const afterStartIndex = afterStartIndexes[k];
+                        const afterEndIndex = afterCloseIndexes[k];
+
+                        const afterText = afterTokens.slice(afterStartIndex, afterEndIndex +1)
+                            .map(token => token.string)
+                            .join('');
+
+                        found = afterText === text;
+                    }
+                }
+            }
+            
+            if(found) {
+                continue;
+            }
+            
+            token.string = text;
+            beforeTokens.splice(i+1,  closeIndex-i);
+            // recalculate map
+            beforeMap = createMap(beforeTokens);
+        }
     }
 
     /**
