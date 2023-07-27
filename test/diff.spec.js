@@ -6,7 +6,7 @@ describe('Diff', function(){
       html_to_tokens = cut.htmlToTokens;
       calculate_operations = cut.calculateOperations;
       setAtomicTagsRegExp = cut.setAtomicTagsRegExp;
-      var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u,sup,ul,ol,li';
+      var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u(?!l),sup,ol,li,ul';
       setAtomicTagsRegExp(tags);
     });
   
@@ -386,6 +386,68 @@ describe('Diff', function(){
           expect(ops).to.eql('<del data-operation-index="0"><ol><li>numner one</li><li>number two</li><li>number three</li></ol></del><ins data-operation-index="0"><ol><li>number one</li><li>number 2</li><li>number new</li><li>number three</li></ol></ins>');
         });
       });
-    });
+    }); // describe('Html tags changing tests')
     
-  }); // describe('Diff')
+    describe('Bullet points as atomic and not atomic', function(){
+
+      it("should mark entire bullet point as changed if anything changes (with text before)", function(){
+        var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u(?!l),sup,ol,li,ul';
+        setAtomicTagsRegExp(tags);
+        const before = "<p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 1</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 2</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 3</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 4</span></p><p> </p><p> </p><ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ul>";
+        const after = "<p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 1</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 2</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 4</span></p><p> </p><p> </p><ul><li>This is a bullet point line 1</li><li>This point line 3</li><li><strong>This is a bullet point line 4</strong></li><li>This is a new bullet point</li></ul>"
+
+        res = cut(before, after);
+
+        expect(res).to.eql(`<p><span style="font-family:'Arial';font-size:14px;">This is a normal line 1</span></p><p> </p><p><span style="font-family:'Arial';font-size:14px;">This is a normal line 2</span></p><p> </p><p><span style="font-family:'Arial';font-size:14px;">This is a normal line <del data-operation-index="1">3</del></span></p><p data-diff-node="del" data-operation-index="1"></p><p><span style="font-family:'Arial';font-size:14px;"><del data-operation-index="1">This is a normal line </del>4</span></p><p> </p><p> </p><del data-operation-index="3"><ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ul></del><ins data-operation-index="3"><ul><li>This is a bullet point line 1</li><li>This point line 3</li><li><strong>This is a bullet point line 4</strong></li><li>This is a new bullet point</li></ul></ins>`);
+      });
+
+      it("should mark entire bullet point as changed if anything changes (no text before)", function(){
+        var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u(?!l),sup,ol,li,ul';
+        setAtomicTagsRegExp(tags);
+
+        const before = "<ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ul>";
+        const after = "<ul><li>This is a bullet point line 1</li><li>This point line 3</li><li><strong>This is a bullet point line 4</strong></li><li>This is a new bullet point</li></ul>"
+
+        res = cut(before, after);
+
+        expect(res).to.eql(`<del data-operation-index="0"><ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ul></del><ins data-operation-index="0"><ul><li>This is a bullet point line 1</li><li>This point line 3</li><li><strong>This is a bullet point line 4</strong></li><li>This is a new bullet point</li></ul></ins>`);
+      });
+
+      it("should mark entire numbered list as changed if anything changes", function(){
+        var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u(?!l),sup,ol,li,ul';
+        setAtomicTagsRegExp(tags);
+        const before = "<p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 1</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 2</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 3</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 4</span></p><p> </p><p> </p><ol><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ol>";
+        const after = "<p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 1</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 2</span></p><p> </p><p><span style=\"font-family:'Arial';font-size:14px;\">This is a normal line 4</span></p><p> </p><p> </p><ol><li>This is a bullet point line 1</li><li>This point line 3</li><li><strong>This is a bullet point line 4</strong></li><li>This is a new bullet point</li></ol>"
+
+        res = cut(before, after);
+
+        expect(res).to.eql(`<p><span style="font-family:'Arial';font-size:14px;">This is a normal line 1</span></p><p> </p><p><span style="font-family:'Arial';font-size:14px;">This is a normal line 2</span></p><p> </p><p><span style="font-family:'Arial';font-size:14px;">This is a normal line <del data-operation-index="1">3</del></span></p><p data-diff-node="del" data-operation-index="1"></p><p><span style="font-family:'Arial';font-size:14px;"><del data-operation-index="1">This is a normal line </del>4</span></p><p> </p><p> </p><del data-operation-index="3"><ol><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ol></del><ins data-operation-index="3"><ol><li>This is a bullet point line 1</li><li>This point line 3</li><li><strong>This is a bullet point line 4</strong></li><li>This is a new bullet point</li></ol></ins>`);
+      });
+
+
+      it("should see removed point item when bullet point is not entire tag but item is", function(){
+        var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u(?!l),sup,li';
+        setAtomicTagsRegExp(tags);
+
+        const before = "<ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ul>";
+        const after = "<ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 4</li></ul>";
+
+        res = cut(before, after);
+
+        expect(res).to.eql(`<ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><del data-operation-index="1"><li>This is a bullet point line 3</li></del><li>This is a bullet point line 4</li></ul>`);
+      });
+
+      it("should see replaced item and new items diff ", function(){
+        var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u(?!l),sup,li';
+        setAtomicTagsRegExp(tags);
+
+        const before = "<ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line 4</li></ul>";
+        const after = "<ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><li>This is a bullet point line new</li><li>Totlly new bullet point</li></ul>";
+
+        res = cut(before, after);
+
+        expect(res).to.eql(`<ul><li>This is a bullet point line 1</li><li>This is a bullet point line 2</li><li>This is a bullet point line 3</li><del data-operation-index="1"><li>This is a bullet point line 4</li></del><ins data-operation-index="1"><li>This is a bullet point line new</li><li>Totlly new bullet point</li></ins></ul>`);
+      });
+    }); // describe('Bullet points as atomic and not atomic')
+
+}); // describe('Diff')

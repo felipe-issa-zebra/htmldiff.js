@@ -566,6 +566,13 @@
             return;
         }
 
+        // check if the text of them are equal, necessary case they are atomic tag
+        var beforeWord = getTextToCompare(beforeStart, beforeTokens);
+        var afterWord = getTextToCompare(afterStart, afterTokens);
+        if (beforeWord !== afterWord){
+            return;
+        }
+
         // If a minLength was provided, we can do a quick check to see if the tokens after that
         // length match. If not, we won't be beating the previous best match, and we can bail out
         // early.
@@ -585,8 +592,8 @@
         var afterIndex = afterStart + currentLength;
 
         while (searching && beforeIndex < beforeTokens.length && afterIndex < afterTokens.length){
-            var beforeWord = beforeTokens[beforeIndex].key;
-            var afterWord = afterTokens[afterIndex].key;
+            var beforeWord = getTextToCompare(beforeIndex, beforeTokens);
+            var afterWord = getTextToCompare(afterIndex, afterTokens);
             if (beforeWord === afterWord){
                 currentLength++;
                 beforeIndex = beforeStart + currentLength;
@@ -621,6 +628,12 @@
         }
 
         return new Match(beforeStart, afterStart, currentLength, segment);
+    }
+
+    function getTextToCompare(index, tokens) {
+        var token = tokens[index];
+        var key = !!isStartOfAtomicTag(token.key) ? 'string': 'key';
+        return token[key];
     }
 
     /**

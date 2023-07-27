@@ -125,5 +125,5 @@ describe('htmlToTokens', function(){
             res = cut('<ul><li>this is a test</li></ul>');
             expect(res.length).to.equal(11);
         });
-    })
+    });
 });
