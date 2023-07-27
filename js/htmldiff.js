@@ -83,8 +83,17 @@
      *    null otherwise
      */
     function isStartOfAtomicTag(word){
-        var result = atomicTagsRegExp.exec(word);
+        var result = getAtomicTagsRegExp().exec(word);
         return result && result[1];
+    }
+
+    /**
+     * Helper function to retrieve the atomic regular expression
+     * either the one supplied by the user or the default one, case not present.
+     * @returns 
+     */
+    function getAtomicTagsRegExp() {
+        return atomicTagsRegExp ?? defaultAtomicTagsRegExp;
     }
 
     /**
@@ -195,7 +204,7 @@
             var char = html[i];
             switch (mode){
                 case 'tag':
-                    var atomicTag = isStartOfAtomicTag(currentWord);
+                    var atomicTag = (' ' === char || '/' === char || '>' === char) ? isStartOfAtomicTag(currentWord) : false;
                     if (atomicTag){
                         mode = 'atomic_tag';
                         currentAtomicTag = atomicTag;
@@ -568,7 +577,7 @@
             }
         }
 
-        // Extend the current match as far foward as it can go, without overflowing beforeTokens or
+        // Extend the current match as far forward as it can go, without overflowing beforeTokens or
         // afterTokens.
         var searching = true;
         var currentLength = 1;

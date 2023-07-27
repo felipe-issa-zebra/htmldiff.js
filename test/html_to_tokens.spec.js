@@ -110,4 +110,20 @@ describe('htmlToTokens', function(){
                     tokenize(['<p>', '<script>console.log("hi");</script>', '</p>']));
         });
     });
+
+    describe('Atomic tag validation', function(){
+        it("should be atomic tag as tag is defined as atomic", () => {
+            setAtomicTagsRegExp('u,i,a');
+
+            res = cut('<u> this is a test </u>');
+            expect(res.length).to.equal(1);
+        });
+
+        it("should not be atomic tag if only first letter is on regular expression", () => {
+            setAtomicTagsRegExp('u(?!l),i,a');
+
+            res = cut('<ul><li>this is a test</li></ul>');
+            expect(res.length).to.equal(11);
+        });
+    })
 });
