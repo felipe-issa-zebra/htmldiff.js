@@ -616,17 +616,6 @@
             }
         }
 
-        // case its a single value, we must check if its the same text.
-        // this is used case a tag is grouped, so we can validate if the value is the same
-        // this also checks if the attributes of a atomic tag are the same.
-        if(beforeStart === afterStart && currentLength === 1) {
-            let beforeText = beforeTokens[beforeStart];
-            let afterText = afterTokens[afterStart];
-            if(beforeText.string !== afterText.string) {
-                return;
-            }
-        }
-
         return new Match(beforeStart, afterStart, currentLength, segment);
     }
 
