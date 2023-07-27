@@ -1,12 +1,12 @@
 describe('Diff', function(){
-    var cut, res, html_to_tokens, calculate_operations, setAtomicTagsRegExp;
+    var cut, res, html_to_tokens, calculate_operations, setAtomicTagsRegExp, tags;
   
     beforeEach(function(){
       cut = require('../js/htmldiff');
       html_to_tokens = cut.htmlToTokens;
       calculate_operations = cut.calculateOperations;
       setAtomicTagsRegExp = cut.setAtomicTagsRegExp;
-      var tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i,u(?!l),sup,ol,li,ul';
+      tags = 'iframe,object,math,svg,script,video,head,style,a,strong,i(?!mg),u(?!l),sup,ol,li,ul, figure';
       setAtomicTagsRegExp(tags);
     });
   
@@ -66,7 +66,8 @@ describe('Diff', function(){
         });
       });
   
-      it('should show two images are different if they change properties', function() {
+      it('should show two images are different if they change properties and img is atomic', function() {
+        setAtomicTagsRegExp(tags + ',img');
         var before = html_to_tokens('<img src="a.jpg">');
         var after = html_to_tokens('<img src="a.jpg" alt="hey!">');
         var ops = calculate_operations(before, after);
@@ -80,9 +81,9 @@ describe('Diff', function(){
         });
       });
 
-      it('should show two images are the same if nothing changed', function() {
+      it('should show two images as equals if they are not defined as atomic', function() {
         var before = html_to_tokens('<img src="a.jpg">');
-        var after = html_to_tokens('<img src="a.jpg">');
+        var after = html_to_tokens('<img src="a.jpg" alt="hey!">');
         var ops = calculate_operations(before, after);
         expect(ops.length).to.equal(1);
         expect(ops[0]).to.eql({
@@ -362,12 +363,12 @@ describe('Diff', function(){
         });
       });
 
-      describe('img', () => {
-        it('should distinguish img attribute change',  () => {
-          var before = '<img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=123"/>';
-          var after = '<img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=456"/>';
+      describe('figure', () => {
+        it('should distinguish img attribute change inside figure defined as atomic',  () => {
+          var before = '<figure><img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=123"/></figure>';
+          var after = '<figure><img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=456"/></figure>';
           var ops = cut(before, after);
-          expect(ops).to.eql('<del data-operation-index="0"><img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=123"/></del><ins data-operation-index="0"><img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=456"/></ins>');
+          expect(ops).to.eql('<del data-operation-index="0"><figure><img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=123"/></figure></del><ins data-operation-index="0"><figure><img href="https://some.url.com/?authToken=token123abbbaaaa&projectId=1234attachmentId=456"/></figure></ins>');
         });
       });
 
