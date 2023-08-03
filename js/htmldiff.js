@@ -70,7 +70,7 @@
      */
     var atomicTagsRegExp;
     // Added head and style (for style tags inside the body)
-    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)\b');
+    var defaultAtomicTagsRegExp = new RegExp('^<(iframe|object|math|svg|script|video|head|style|a)');
     
     /**
      * Checks if the current word is the beginning of an atomic tag. An atomic tag is one whose
@@ -83,8 +83,33 @@
      *    null otherwise
      */
     function isStartOfAtomicTag(word){
-        var result = atomicTagsRegExp.exec(word);
+        var result = getAtomicTagsRegExp().exec(word);
         return result && result[1];
+    }
+
+    /**
+     * Helper function to retrieve the atomic regular expression
+     * either the one supplied by the user or the default one, case not present.
+     * @returns 
+     */
+    function getAtomicTagsRegExp() {
+        return atomicTagsRegExp ?? defaultAtomicTagsRegExp;
+    }
+
+    /**
+     * Sets the atomic tag regular expression, if not already set.
+     * This was moved to a method so it can be called on test phase. 
+     * Also checks if not already defined for the same reason.
+     *
+     * @param {*} atomicTags 
+     * @returns 
+     */
+    function setAtomicTagsRegExp(atomicTags) {
+        // if already set no need to set again, unless provided
+        if(!atomicTags && atomicTagsRegExp) return;
+        atomicTags ? 
+            (atomicTagsRegExp = new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')'))
+            : (atomicTagsRegExp = defaultAtomicTagsRegExp);
     }
 
     /**
@@ -179,7 +204,7 @@
             var char = html[i];
             switch (mode){
                 case 'tag':
-                    var atomicTag = isStartOfAtomicTag(currentWord);
+                    var atomicTag = (' ' === char || '/' === char || '>' === char) ? isStartOfAtomicTag(currentWord) : false;
                     if (atomicTag){
                         mode = 'atomic_tag';
                         currentAtomicTag = atomicTag;
@@ -201,7 +226,7 @@
                     }
                     break;
                 case 'atomic_tag':
-                    if (isEndOfTag(char) && isEndOfAtomicTag(currentWord, currentAtomicTag)){
+                    if (isEndOfTag(char) && (isImage(currentWord + '>') || isEndOfAtomicTag(currentWord, currentAtomicTag))){
                         currentWord += '>';
                         words.push(createToken(currentWord));
                         currentWord = '';
@@ -283,7 +308,7 @@
      */
     function getKeyForToken(token){
         // If the token is an image element, grab it's src attribute to include in the key.
-        var img = /^<img.*src=['"]([^"']*)['"].*>$/.exec(token);
+        var img = isImage(token);
         if (img) {
             return '<img src="' + img[1] + '">';
         }
@@ -330,6 +355,16 @@
             return token.replace(/(\s+|&nbsp;|&#160;)/g, ' ');
         }
         return token;
+    }
+
+    /**
+     * Checks if a given token is image
+     *
+     * @param {} token 
+     * @returns 
+     */
+    function isImage(token) {
+        return /^<img.*src=['"]([^"']*)['"].*>$/.exec(token);
     }
 
     /**
@@ -541,6 +576,13 @@
             return;
         }
 
+        // check if the text of them are equal, necessary case they are atomic tag
+        var beforeWord = getTextToCompare(beforeStart, beforeTokens);
+        var afterWord = getTextToCompare(afterStart, afterTokens);
+        if (beforeWord !== afterWord){
+            return;
+        }
+
         // If a minLength was provided, we can do a quick check to see if the tokens after that
         // length match. If not, we won't be beating the previous best match, and we can bail out
         // early.
@@ -552,7 +594,7 @@
             }
         }
 
-        // Extend the current match as far foward as it can go, without overflowing beforeTokens or
+        // Extend the current match as far forward as it can go, without overflowing beforeTokens or
         // afterTokens.
         var searching = true;
         var currentLength = 1;
@@ -560,8 +602,8 @@
         var afterIndex = afterStart + currentLength;
 
         while (searching && beforeIndex < beforeTokens.length && afterIndex < afterTokens.length){
-            var beforeWord = beforeTokens[beforeIndex].key;
-            var afterWord = afterTokens[afterIndex].key;
+            var beforeWord = getTextToCompare(beforeIndex, beforeTokens);
+            var afterWord = getTextToCompare(afterIndex, afterTokens);
             if (beforeWord === afterWord){
                 currentLength++;
                 beforeIndex = beforeStart + currentLength;
@@ -585,6 +627,12 @@
         }
 
         return new Match(beforeStart, afterStart, currentLength, segment);
+    }
+
+    function getTextToCompare(index, tokens) {
+        var token = tokens[index];
+        var key = !!isStartOfAtomicTag(token.key) ? 'string': 'key';
+        return token[key];
     }
 
     /**
@@ -751,6 +799,7 @@
                 lastOp = op;
             }
         }
+
         return postProcessed;
     }
 
@@ -959,9 +1008,7 @@
         if (before === after) return before;
 
         // Enable user provided atomic tag list.
-        atomicTags ? 
-            (atomicTagsRegExp = new RegExp('^<(' + atomicTags.replace(/\s*/g, '').replace(/,/g, '|') + ')\b'))
-            : (atomicTagsRegExp = defaultAtomicTagsRegExp);
+        setAtomicTagsRegExp(atomicTags); 
 
         before = htmlToTokens(before);
         after = htmlToTokens(after);
@@ -971,6 +1018,7 @@
 
     diff.htmlToTokens = htmlToTokens;
     diff.findMatchingBlocks = findMatchingBlocks;
+    diff.setAtomicTagsRegExp = setAtomicTagsRegExp;
     findMatchingBlocks.findBestMatch = findBestMatch;
     findMatchingBlocks.createMap = createMap;
     findMatchingBlocks.createToken = createToken;
