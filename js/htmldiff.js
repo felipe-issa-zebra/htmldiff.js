@@ -226,7 +226,7 @@
                     }
                     break;
                 case 'atomic_tag':
-                    if (isEndOfTag(char) && isEndOfAtomicTag(currentWord, currentAtomicTag)){
+                    if (isEndOfTag(char) && (isImage(currentWord + '>') || isEndOfAtomicTag(currentWord, currentAtomicTag))){
                         currentWord += '>';
                         words.push(createToken(currentWord));
                         currentWord = '';
@@ -308,7 +308,7 @@
      */
     function getKeyForToken(token){
         // If the token is an image element, grab it's src attribute to include in the key.
-        var img = /^<img.*src=['"]([^"']*)['"].*>$/.exec(token);
+        var img = isImage(token);
         if (img) {
             return '<img src="' + img[1] + '">';
         }
@@ -355,6 +355,16 @@
             return token.replace(/(\s+|&nbsp;|&#160;)/g, ' ');
         }
         return token;
+    }
+
+    /**
+     * Checks if a given token is image
+     *
+     * @param {} token 
+     * @returns 
+     */
+    function isImage(token) {
+        return /^<img.*src=['"]([^"']*)['"].*>$/.exec(token);
     }
 
     /**

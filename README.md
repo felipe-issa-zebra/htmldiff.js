@@ -66,6 +66,9 @@ of these three parameters it will be ignored:
   where it does not make sense to insert `<ins>` and `<del>` tags. If not used, the default 
   list will be used:
   `iframe,object,math,svg,script,video,head,style`.
+  The tags specified here will be used as 'begin with'. So if tag 'i' is added, <i>
+  tags will be treated as atomic, as well as <img>. If you wish to exclude <img> tag
+  from the <i> one, configure it as 'i(?!mg)'
 
 
 ### Example
